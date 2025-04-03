@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Inscription{% endblock %}
+
+{% block additional_styles %}
+    .register-container {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.9));
+        border-radius: 20px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+    .register-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .register-header i {
+        font-size: 3rem;
+        color: #2e7d32;
+        margin-bottom: 1rem;
+    }
+    .form-label {
+        color: #2e7d32;
+        font-weight: 500;
+    }
+    .form-control {
+        border: 2px solid #e8f5e9;
+        padding: 0.75rem 1.5rem;
+        border-radius: 25px;
+    }
+    .form-control:focus {
+        border-color: #2e7d32;
+        box-shadow: 0 0 0 0.2rem rgba(46, 125, 50, 0.25);
+    }
+    .btn-register {
+        background: linear-gradient(135deg, #2e7d32, #1b5e20);
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 25px;
+        font-weight: 500;
+        width: 100%;
+        margin-top: 1rem;
+    }
+    .btn-register:hover {
+        background: linear-gradient(135deg, #1b5e20, #2e7d32);
+        transform: translateY(-2px);
+    }
+    .login-link {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: #2e7d32;
+    }
+    .login-link a {
+        color: #1b5e20;
+        text-decoration: none;
+        font-weight: 500;
+    }
+    .login-link a:hover {
+        text-decoration: underline;
+    }
+{% endblock %}
+
+{% block content %}
+<div class="register-container">
+    <div class="register-header">
+        <i class="fas fa-seedling"></i>
+        <h2>Inscription</h2>
+    </div>
+    <form method="POST">
+        <div class="mb-3">
+            <label for="username" class="form-label">
+                <i class="fas fa-user me-2"></i>Nom d'utilisateur
+            </label>
+            <input type="text" class="form-control" id="username" name="username" required>
+        </div>
+        <div class="mb-3">
+            <label for="password" class="form-label">
+                <i class="fas fa-lock me-2"></i>Mot de passe
+            </label>
+            <input type="password" class="form-control" id="password" name="password" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-register">
+            <i class="fas fa-user-plus me-2"></i>S'inscrire
+        </button>
+    </form>
+    <div class="login-link">
+        <p>Déjà un compte ? <a href="{{ url_for('login') }}">Se connecter</a></p>
+    </div>
+</div>
+{% endblock %} 

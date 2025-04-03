@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="text-center">
+    <h1 class="mb-4">Bienvenue dans la base de données des plantes</h1>
+    <p class="lead mb-4">Découvrez les informations détaillées sur l'entretien de différentes plantes d'intérieur.</p>
+    
+    {% if current_user.is_authenticated %}
+        <a href="{{ url_for('search') }}" class="btn btn-primary btn-lg">Rechercher une plante</a>
+    {% else %}
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Pour commencer</h5>
+                        <p class="card-text">Connectez-vous ou créez un compte pour accéder à la base de données.</p>
+                        <div class="d-grid gap-2">
+                            <a href="{{ url_for('login') }}" class="btn btn-primary">Se connecter</a>
+                            <a href="{{ url_for('register') }}" class="btn btn-outline-primary">S'inscrire</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %} 

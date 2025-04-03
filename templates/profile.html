@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Profil Utilisateur{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+{% endblock %}
+
+{% block additional_styles %}
+    .profile-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    .profile-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .profile-header i {
+        font-size: 3rem;
+        color: #2e7d32;
+        margin-bottom: 1rem;
+    }
+    .profile-section {
+        background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.9));
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    }
+    .user-plants {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 20px;
+        border-radius: 10px;
+        margin-top: 20px;
+    }
+    .plants-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 15px;
+        margin-top: 15px;
+    }
+    .plant-card {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 15px;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transition: all 0.3s ease;
+        gap: 10px;
+        position: relative;
+    }
+    .plant-card:hover {
+        background: rgba(255, 255, 255, 0.1);
+        transform: translateY(-2px);
+    }
+    .plant-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+    }
+    .plant-image {
+        width: 100px;
+        height: 100px;
+        border-radius: 8px;
+        object-fit: cover;
+    }
+    .plant-name {
+        font-size: 1.1em;
+        color: #2e7d32;
+        text-align: center;
+        font-weight: 500;
+        margin-top: 5px;
+    }
+    .remove-plant {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: none;
+        border: none;
+        padding: 5px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        opacity: 0.7;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+    }
+    .remove-plant:hover {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+    .btn-danger {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 25px;
+        font-weight: 500;
+    }
+    .btn-danger:hover {
+        background: linear-gradient(135deg, #c82333, #dc3545);
+        transform: translateY(-2px);
+    }
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-header">
+        <i class="fas fa-user-circle"></i>
+        <h1>Profil de {{ current_user.username }}</h1>
+    </div>
+
+    <div class="profile-section">
+        <h2><i class="fas fa-key me-2"></i>Changer le mot de passe</h2>
+        <form method="POST" action="{{ url_for('update_password') }}" class="mt-4">
+            <div class="mb-3">
+                <label for="current_password" class="form-label">Mot de passe actuel</label>
+                <input type="password" class="form-control" id="current_password" name="current_password" required>
+            </div>
+            <div class="mb-3">
+                <label for="new_password" class="form-label">Nouveau mot de passe</label>
+                <input type="password" class="form-control" id="new_password" name="new_password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i>Mettre à jour le mot de passe
+            </button>
+        </form>
+    </div>
+
+    <div class="profile-section">
+        <h2><i class="fas fa-leaf me-2"></i>Mes Plantes</h2>
+        <div class="user-plants">
+            {% if current_user.plants %}
+                <div class="plants-grid">
+                    {% for plant in current_user.plants %}
+                    <div class="plant-card">
+                        <div class="plant-info">
+                            <img src="{{ plant.image_url }}" alt="{{ plant.name }}" class="plant-image" onerror="this.src='/static/images/default-plant.jpg'">
+                            <div class="plant-name">{{ plant.name }}</div>
+                        </div>
+                        <button class="remove-plant" data-plant-id="{{ plant.id }}" title="Supprimer la plante">
+                            🗑️
+                        </button>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-center text-muted">Vous n'avez pas encore de plantes ajoutées.</p>
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('search') }}" class="btn btn-primary">
+                        <i class="fas fa-search me-2"></i>Rechercher des plantes
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="profile-section">
+        <h2><i class="fas fa-trash-alt me-2"></i>Supprimer le compte</h2>
+        <p class="text-muted">Cette action est irréversible. Toutes vos données seront supprimées.</p>
+        <form method="POST" action="{{ url_for('delete_account') }}" class="mt-4">
+            <button type="submit" class="btn btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ?')">
+                <i class="fas fa-trash-alt me-2"></i>Supprimer mon compte
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %} 
