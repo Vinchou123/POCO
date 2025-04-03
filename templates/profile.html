@@ -170,4 +170,34 @@
         </form>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.remove-plant').forEach(button => {
+            button.addEventListener('click', function(event) {
+                event.preventDefault();
+                const plantId = this.getAttribute('data-plant-id');
+                
+                // Suppression directe sans confirmation
+                fetch(`/api/plants/${plantId}/remove`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        this.closest('.plant-card').remove();
+                    } else {
+                        alert(data.message);
+                    }
+                })
+                .catch(error => console.error('Erreur:', error));
+            });
+        });
+    });
+</script>
+{% endblock %}

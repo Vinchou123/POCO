@@ -117,6 +117,16 @@ def toggle_plant(plant_id):
         db.session.commit()
         return jsonify({'status': 'added'})
 
+@app.route('/api/plants/<int:plant_id>/remove', methods=['POST'])
+@login_required
+def remove_plant(plant_id):
+    plant = Plant.query.get_or_404(plant_id)
+    if plant in current_user.plants:
+        current_user.plants.remove(plant)
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Plante supprimée avec succès'})
+    return jsonify({'status': 'error', 'message': 'Plante non trouvée ou non associée à l\'utilisateur'}), 400
+
 @app.route('/profile')
 @login_required
 def profile():
@@ -180,4 +190,4 @@ def init_db():
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True) 
+    app.run(debug=True)
