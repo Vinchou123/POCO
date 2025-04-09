@@ -75,6 +75,17 @@
         font-weight: 500;
         margin-top: 5px;
     }
+    .plant-sensors {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 5px;
+        margin-top: 10px;
+    }
+    .sensor-hum, .sensor-lum {
+        font-size: 0.9em;
+        color: #555;
+    }
     .remove-plant {
         position: absolute;
         top: 5px;
@@ -138,10 +149,15 @@
             {% if current_user.plants %}
                 <div class="plants-grid">
                     {% for plant in current_user.plants %}
-                    <div class="plant-card">
+                    <div class="plant-card" data-mac="{{ plant.mac_address }}">
                         <div class="plant-info">
                             <img src="{{ plant.image_url }}" alt="{{ plant.name }}" class="plant-image" onerror="this.src='/static/images/default-plant.jpg'">
                             <div class="plant-name">{{ plant.name }}</div>
+                        </div>
+                        <!-- Conteneur pour les données des capteurs -->
+                        <div class="plant-sensors">
+                            <div class="sensor-hum">Humidité : <span>N/A</span></div>
+                            <div class="sensor-lum">Luminosité : <span>N/A</span></div>
                         </div>
                         <button class="remove-plant" data-plant-id="{{ plant.id }}" title="Supprimer la plante">
                             🗑️
@@ -173,7 +189,28 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script>
+    const socket = io();
+
+    // Écouter les données MQTT
+    socket.on('mqtt_data', (data) => {
+        const { mac, sensor, value } = data;
+
+        // Vérifier si l'adresse MAC correspond
+        if (mac === "5c:01:3b:72:ae:80") {
+            // Trouver la carte de la plante correspondante
+            const plantCard = document.querySelector(`.plant-card[data-mac="${mac}"]`);
+            if (plantCard) {
+                // Mettre à jour les données du capteur
+                const sensorElement = plantCard.querySelector(`.sensor-${sensor.toLowerCase()} span`);
+                if (sensorElement) {
+                    sensorElement.textContent = value;
+                }
+            }
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.remove-plant').forEach(button => {
             button.addEventListener('click', function(event) {

@@ -1,0 +1,42 @@
+<!-- templates/dashboard.html -->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Plantes</title>
+</head>
+<body>
+  <h1>🌿 Dashboard Temps Réel</h1>
+  <div id="dashboard"></div>
+
+  <script>
+    function refreshDashboard() {
+      fetch('/api/plant_data')
+        .then(res => res.json())
+        .then(data => {
+          let html = ''
+          data.forEach(p => {
+            html += `
+              <div>
+                <h2>${p.name}</h2>
+                🌡 Température : ${p.temperature}<br>
+                💧 Humidité : ${p.humidity}<br>
+                ☀️ Lumière : ${p.light}<br>
+                <button onclick="waterPlant('${p.mac}')">💦 Arroser</button>
+              </div><hr>`
+          });
+          document.getElementById('dashboard').innerHTML = html
+        });
+    }
+
+    function waterPlant(mac) {
+      fetch(`/plant/${mac}/water`, { method: 'POST' })
+        .then(res => res.json())
+        .then(data => alert(data.message))
+    }
+
+    setInterval(refreshDashboard, 5000);
+    refreshDashboard();
+  </script>
+</body>
+</html>

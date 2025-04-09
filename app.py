@@ -1,11 +1,19 @@
+import signal
+import sys
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
 import json
 import os
+from flask_socketio import SocketIO
+import paho.mqtt.client as mqtt
+
+
 
 app = Flask(__name__)
+socketio = SocketIO(app, async_mode='threading')
+
 app.config['SECRET_KEY'] = 'votre_clé_secrète_ici'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///plants.db'
 db = SQLAlchemy(app)
@@ -39,7 +47,8 @@ user_plants = db.Table('user_plants',
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
+
 
 @app.route('/')
 def index():
@@ -188,6 +197,66 @@ def init_db():
             
             db.session.commit()
 
+# Configuration MQTT
+MQTT_BROKER = 'broker.emqx.io' 
+MQTT_PORT = 1883
+MQTT_TOPICS = [
+    "ESP/5c:01:3b:72:ae:80/HUM",
+    "ESP/5c:01:3b:72:ae:80/LUM"
+]
+
+# Variable pour suivre l'état de la connexion
+is_connected = False
+
+def on_connect(client, userdata, flags, rc):
+    global is_connected
+    if not is_connected:  # Vérifie si le message "Connecté" a déjà été envoyé
+        print("Connecté au broker MQTT avec le code de retour", rc)
+        client.publish("ESP/5c:01:3b:72:ae:80/HUM", "Connecté", qos=1)
+        is_connected = True  # Met à jour l'état de la connexion
+def handle_exit(sig, frame):
+    print("\nDéconnexion du broker MQTT...")
+    mqtt_client.publish("ESP/5c:01:3b:72:ae:80/HUM", "Déconnecté", qos=1)
+    mqtt_client.disconnect()
+    mqtt_client.loop_stop()
+    print("Déconnecté proprement.")
+    sys.exit(0)
+
+# Capture des signaux d'interruption
+signal.signal(signal.SIGINT, handle_exit)
+signal.signal(signal.SIGTERM, handle_exit)
+
+def on_message(client, userdata, msg):
+    topic = msg.topic
+    value = msg.payload.decode()
+    print(f"Message reçu sur {topic}: {value}")
+
+    # Extraire le capteur (HUM ou LUM) depuis le topic
+    mac_address, sensor = topic.split('/')[1:]
+    sensor = sensor.upper()
+
+    # Émettre les données via Socket.IO
+    socketio.emit('mqtt_data', {
+        'mac': mac_address,
+        'sensor': sensor,
+        'value': value
+    }, to='/')
+
+def on_disconnect(client, userdata, rc):
+    global is_connected
+    if is_connected:  # Vérifie si le client était connecté
+        print("Déconnecté du broker MQTT")
+        client.publish("ESP/5c:01:3b:72:ae:80/HUM", "Déconnecté", qos=1)
+        is_connected = False  # Met à jour l'état de la connexion
+
+# Configurer le client MQTT
+mqtt_client = mqtt.Client(client_id="mqttx_876ac026")
+mqtt_client.on_connect = on_connect
+mqtt_client.on_message = on_message
+mqtt_client.on_disconnect = on_disconnect
+mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+mqtt_client.loop_start()
+
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    socketio.run(app, debug=True, use_reloader=False)
