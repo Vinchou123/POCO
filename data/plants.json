@@ -1,6 +1,7 @@
 {
     "plants": [
         {
+            "mac_address": "5c:01:3b:72:ae:80",
             "name": "Aloe Vera",
             "temperature": "20-25°C",
             "humidity": "Faible (30-40%)",
@@ -200,7 +201,7 @@
             "light_duration": "12-14 heures par jour",
             "summary": "Le Bougainvillier est une plante grimpante aux bractées colorées. Il est parfait pour les murs et les pergolas, apportant une touche méditerranéenne.",
             "model_3d": "",
-            "image_url": ""
+            "image_url": "/static/images/Bougainvillier.jpg"
         },
         {
             "name": "Iris",
@@ -212,7 +213,7 @@
             "light_duration": "12-14 heures par jour",
             "summary": "L'Iris est une fleur élégante aux pétales délicats. Il existe de nombreuses variétés, chacune avec ses propres caractéristiques et couleurs uniques.",
             "model_3d": "",
-            "image_url": ""
+            "image_url": "/static/images/Iris.jpg"
         },
         {
             "name": "Rose trémière",
@@ -224,7 +225,7 @@
             "light_duration": "12-14 heures par jour",
             "summary": "La Rose trémière est une plante bisannuelle aux grandes fleurs colorées. Elle est parfaite pour les bordures et les murs, apportant une touche de charme rustique.",
             "model_3d": "",
-            "image_url": ""
+            "image_url": "/static/images/Rose trémière.jpg"
         },
         {
             "name": "Orchidée",
@@ -236,7 +237,7 @@
             "light_duration": "10-12 heures par jour",
             "summary": "L'Orchidée est une plante exotique aux fleurs complexes et élégantes. Elle nécessite des soins spécifiques mais récompense par sa beauté exceptionnelle.",
             "model_3d": "",
-            "image_url": ""
+            "image_url": "/static/images/Orchidée.jpg"
         },
         {
             "name": "Aglaonema",
@@ -248,7 +249,7 @@
             "light_duration": "8-10 heures par jour",
             "summary": "L'Aglaonema est une plante d'intérieur aux feuilles panachées. Elle est très résistante et purifie l'air, parfaite pour les débutants.",
             "model_3d": "",
-            "image_url": ""
+            "image_url": "/static/images/Aglaonema.jpg"
         },
         {
             "name": "Anthurium",

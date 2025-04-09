@@ -13,7 +13,7 @@ def on_connect(client, userdata, flags, rc):
     client.subscribe("ESP/+/TEMP")
     client.subscribe("ESP/+/HUM")
     client.subscribe("ESP/+/LUM")
-
+    
 def on_message(client, userdata, msg):
     mac, sensor = parse_topic(msg.topic)
     if not mac or not sensor:
@@ -23,17 +23,16 @@ def on_message(client, userdata, msg):
     print(f"[MQTT] {mac} | {sensor} = {value}")
 
     with app.app_context():
-        plant = Plant.query.filter_by(name=mac).first()
+        plant = Plant.query.filter_by(mac_address=mac).first()
         if plant:
-            if sensor == 'TEMP':
-                plant.temperature = value
-            elif sensor == 'HUM':
+            if sensor == 'HUM':
                 plant.humidity = value
             elif sensor == 'LUM':
                 plant.light = value
             db.session.commit()
 
-            # Émettre les données via SocketIO
+            # Émettre les données via Socket.IO
+            print(f"Émission des données via Socket.IO : {mac}, {sensor}, {value}")
             socketio.emit('mqtt_data', {
                 'mac': mac,
                 'sensor': sensor,

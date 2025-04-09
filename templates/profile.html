@@ -156,8 +156,8 @@
                         </div>
                         <!-- Conteneur pour les données des capteurs -->
                         <div class="plant-sensors">
-                            <div class="sensor-hum">Humidité : <span>N/A</span></div>
-                            <div class="sensor-lum">Luminosité : <span>N/A</span></div>
+                            <div class="sensor-hum">Humidité : <span>{{ plant.current_humidity or 'N/A' }}</span></div>
+                            <div class="sensor-lum">Luminosité : <span>{{ plant.current_light or 'N/A' }}</span></div>
                         </div>
                         <button class="remove-plant" data-plant-id="{{ plant.id }}" title="Supprimer la plante">
                             🗑️
@@ -192,21 +192,22 @@
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script>
     const socket = io();
-
-    // Écouter les données MQTT
+  
+    socket.on('connect', () => {
+        console.log("Connecté au serveur Socket.IO");
+    });
+   
     socket.on('mqtt_data', (data) => {
+        console.log("Données reçues via Socket.IO :", data);
         const { mac, sensor, value } = data;
-
-        // Vérifier si l'adresse MAC correspond
-        if (mac === "5c:01:3b:72:ae:80") {
-            // Trouver la carte de la plante correspondante
-            const plantCard = document.querySelector(`.plant-card[data-mac="${mac}"]`);
-            if (plantCard) {
-                // Mettre à jour les données du capteur
-                const sensorElement = plantCard.querySelector(`.sensor-${sensor.toLowerCase()} span`);
-                if (sensorElement) {
-                    sensorElement.textContent = value;
-                }
+   
+        // Trouver la carte de la plante correspondante
+        const plantCard = document.querySelector(`.plant-card[data-mac="${mac}"]`);
+           if (plantCard) {
+            // Mettre à jour les données du capteur
+            const sensorElement = plantCard.querySelector(`.sensor-${sensor.toLowerCase()} span`);
+            if (sensorElement) {
+                sensorElement.textContent = value;
             }
         }
     });

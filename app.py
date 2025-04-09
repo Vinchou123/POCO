@@ -8,6 +8,7 @@ import json
 import os
 from flask_socketio import SocketIO
 import paho.mqtt.client as mqtt
+from flask_migrate import Migrate
 
 
 
@@ -21,6 +22,9 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
+# Initialiser Flask-Migrate
+migrate = Migrate(app, db)
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -29,15 +33,19 @@ class User(UserMixin, db.Model):
 
 class Plant(db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    mac_address = db.Column(db.String(100), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     temperature = db.Column(db.String(50))
-    humidity = db.Column(db.String(50))
+    humidity = db.Column(db.String(50))  # Colonne existante
     watering = db.Column(db.String(50))
     flow_rate = db.Column(db.String(50))
-    light = db.Column(db.String(50))
+    light = db.Column(db.String(50))  # Colonne existante
     light_duration = db.Column(db.String(50))
     summary = db.Column(db.Text, nullable=True)
     image_url = db.Column(db.String(200))
+    # Nouvelles colonnes pour stocker les données des capteurs
+    current_humidity = db.Column(db.Float, nullable=True)  # Humidité actuelle
+    current_light = db.Column(db.Float, nullable=True)  # Luminosité actuelle
 
 # Table de liaison entre utilisateurs et plantes
 user_plants = db.Table('user_plants',
@@ -183,6 +191,7 @@ def init_db():
             
             for plant_data in plants_data:
                 plant = Plant(
+                    mac_address=plant_data.get('mac_address', 'UNKNOWN'),  # Ajout de mac_address
                     name=plant_data['name'],
                     temperature=plant_data['temperature'],
                     humidity=plant_data['humidity'],
@@ -196,7 +205,7 @@ def init_db():
                 db.session.add(plant)
             
             db.session.commit()
-
+            
 # Configuration MQTT
 MQTT_BROKER = 'broker.emqx.io' 
 MQTT_PORT = 1883
@@ -209,14 +218,22 @@ MQTT_TOPICS = [
 is_connected = False
 
 def on_connect(client, userdata, flags, rc):
-    global is_connected
-    if not is_connected:  # Vérifie si le message "Connecté" a déjà été envoyé
-        print("Connecté au broker MQTT avec le code de retour", rc)
-        client.publish("ESP/5c:01:3b:72:ae:80/HUM", "Connecté", qos=1)
-        is_connected = True  # Met à jour l'état de la connexion
+    print("🔌 Connecté au broker MQTT :", rc)
+    with app.app_context():
+        plants = Plant.query.all()
+        for plant in plants:
+            mac_address = plant.mac_address
+            if mac_address == "UNKNOWN":
+                # Supprimez ou commentez cette ligne pour ne pas afficher les messages
+                # print(f"⚠️ Adresse MAC inconnue pour la plante : {plant.name}, abonnement ignoré.")
+                continue
+            topic = f"ESP/{mac_address}/#"
+            client.subscribe(topic)
+            print(f"✅ Abonné au topic : {topic}")
+                   
 def handle_exit(sig, frame):
     print("\nDéconnexion du broker MQTT...")
-    mqtt_client.publish("ESP/5c:01:3b:72:ae:80/HUM", "Déconnecté", qos=1)
+#    mqtt_client.publish("ESP/5c:01:3b:72:ae:80/HUM", "Déconnecté", qos=1)
     mqtt_client.disconnect()
     mqtt_client.loop_stop()
     print("Déconnecté proprement.")
@@ -226,27 +243,56 @@ def handle_exit(sig, frame):
 signal.signal(signal.SIGINT, handle_exit)
 signal.signal(signal.SIGTERM, handle_exit)
 
+def parse_topic(topic):
+    """
+    Analyse un topic MQTT et retourne l'adresse MAC et le type de capteur.
+    Exemple de topic : "ESP/5c:01:3b:72:ae:80/HUM"
+    Retourne : ("5c:01:3b:72:ae:80", "HUM")
+    """
+    parts = topic.split('/')
+    if len(parts) == 3 and parts[0] == 'ESP':
+        mac_address = parts[1]
+        sensor = parts[2]
+        return mac_address, sensor
+    return None, None
+
 def on_message(client, userdata, msg):
-    topic = msg.topic
-    value = msg.payload.decode()
-    print(f"Message reçu sur {topic}: {value}")
+    print(f"📩 Message brut reçu : Topic = {msg.topic}, Payload = {msg.payload.decode()}")
 
-    # Extraire le capteur (HUM ou LUM) depuis le topic
-    mac_address, sensor = topic.split('/')[1:]
-    sensor = sensor.upper()
+    mac, sensor = parse_topic(msg.topic)
+    if not mac or not sensor:
+        print("⚠️ Topic non valide ou non pris en charge")
+        return
 
-    # Émettre les données via Socket.IO
-    socketio.emit('mqtt_data', {
-        'mac': mac_address,
-        'sensor': sensor,
-        'value': value
-    }, to='/')
+    value = float(msg.payload.decode())  # Convertir la valeur en float
+
+    print(f"[MQTT] {mac} | {sensor} = {value}")
+
+    with app.app_context():
+        # Rechercher la plante correspondant à l'adresse MAC
+        plant = Plant.query.filter_by(mac_address=mac).first()
+        if plant:
+            # Mettre à jour les données du capteur dans les nouvelles colonnes
+            if sensor == 'HUM':
+                plant.current_humidity = value
+            elif sensor == 'LUM':
+                plant.current_light = value
+            db.session.commit()
+
+            print(f"✅ Données mises à jour pour la plante : {plant.name}")
+            # Émettre les données via Socket.IO
+            socketio.emit('mqtt_data', {
+                'mac': mac,
+                'sensor': sensor,
+                'value': value
+            }, to='/')
 
 def on_disconnect(client, userdata, rc):
     global is_connected
     if is_connected:  # Vérifie si le client était connecté
         print("Déconnecté du broker MQTT")
-        client.publish("ESP/5c:01:3b:72:ae:80/HUM", "Déconnecté", qos=1)
+        # ESP/#
+        client.publish("ESP/5c:01:3b:72:ae:80/STATE", "Ping", qos=1)
         is_connected = False  # Met à jour l'état de la connexion
 
 # Configurer le client MQTT
@@ -254,7 +300,7 @@ mqtt_client = mqtt.Client(client_id="mqttx_876ac026")
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message
 mqtt_client.on_disconnect = on_disconnect
-mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 60)
+mqtt_client.connect(MQTT_BROKER, MQTT_PORT, 120)
 mqtt_client.loop_start()
 
 if __name__ == '__main__':

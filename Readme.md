@@ -1,5 +1,6 @@
 télécharger :
 pip install flask
+pip install flask-migrate
 
 pip install flask flask_sqlalchemy flask_migrate flask_cors
 falsk_login
