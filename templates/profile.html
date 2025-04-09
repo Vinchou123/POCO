@@ -126,6 +126,16 @@
         <h1>Profil de {{ current_user.username }}</h1>
     </div>
 
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul class="flash-messages">
+                {% for category, message in messages %}
+                    <li class="{{ category }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
     <div class="profile-section">
         <h2><i class="fas fa-key me-2"></i>Changer le mot de passe</h2>
         <form method="POST" action="{{ url_for('update_password') }}" class="mt-4">
@@ -159,6 +169,12 @@
                             <div class="sensor-hum">Humidité : <span>{{ plant.current_humidity or 'N/A' }}</span></div>
                             <div class="sensor-lum">Luminosité : <span>{{ plant.current_light or 'N/A' }}</span></div>
                         </div>
+                        <!-- Champ pour l'adresse MAC -->
+                        <div class="mac-address">
+                            <label for="mac_address_{{ plant.id }}">Adresse MAC :</label>
+                            <input type="text" id="mac_address_{{ plant.id }}" class="mac-input" value="{{ plant.mac_address or '' }}" 
+                                   data-plant-id="{{ plant.id }}" placeholder="Entrez l'adresse MAC">
+                        </div>
                         <button class="remove-plant" data-plant-id="{{ plant.id }}" title="Supprimer la plante">
                             🗑️
                         </button>
@@ -185,6 +201,7 @@
             </button>
         </form>
     </div>
+
 </div>
 {% endblock %}
 
@@ -236,6 +253,56 @@
                 .catch(error => console.error('Erreur:', error));
             });
         });
+
+        // Sélectionner tous les champs d'entrée pour les adresses MAC
+        document.querySelectorAll('.mac-input').forEach(input => {
+            input.addEventListener('change', function () {
+                const plantId = this.getAttribute('data-plant-id');
+                const macAddress = this.value;
+
+                // Envoyer une requête POST pour mettre à jour l'adresse MAC
+                fetch(`/api/plants/${plantId}/update_mac`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ mac_address: macAddress })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Adresse MAC mise à jour avec succès !');
+                    } else {
+                        alert('Erreur : ' + data.message);
+                    }
+                })
+                .catch(error => console.error('Erreur:', error));
+            });
+        });
     });
 </script>
 {% endblock %}
+
+@app.route('/profile/update_mac', methods=['POST'])
+@login_required
+def update_mac():
+    plant_name = request.form.get('plant_name')
+    mac_address = request.form.get('mac_address')
+
+    if not plant_name or not mac_address:
+        flash("Le nom de la plante et l'adresse MAC sont obligatoires.", "error")
+        return redirect('/profile')
+
+    with app.app_context():
+        # Rechercher la plante par son nom
+        plant = Plant.query.filter_by(name=plant_name).first()
+        if not plant:
+            flash("Plante introuvable.", "error")
+            return redirect('/profile')
+
+        # Mettre à jour l'adresse MAC
+        plant.mac_address = mac_address
+        db.session.commit()
+
+        flash(f"L'adresse MAC de la plante '{plant_name}' a été mise à jour avec succès !", "success")
+        return redirect('/profile')

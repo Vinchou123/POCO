@@ -144,6 +144,27 @@ def remove_plant(plant_id):
         return jsonify({'status': 'success', 'message': 'Plante supprimée avec succès'})
     return jsonify({'status': 'error', 'message': 'Plante non trouvée ou non associée à l\'utilisateur'}), 400
 
+@app.route('/api/plants/<int:plant_id>/update_mac', methods=['POST'])
+@login_required
+def update_mac_api(plant_id):
+    data = request.get_json()
+    mac_address = data.get('mac_address')
+
+    if not mac_address:
+        return jsonify({'status': 'error', 'message': "L'adresse MAC est obligatoire."}), 400
+
+    with app.app_context():
+        # Rechercher la plante par son ID
+        plant = Plant.query.get(plant_id)
+        if not plant:
+            return jsonify({'status': 'error', 'message': 'Plante introuvable.'}), 404
+
+        # Mettre à jour l'adresse MAC
+        plant.mac_address = mac_address
+        db.session.commit()
+
+        return jsonify({'status': 'success', 'message': "Adresse MAC mise à jour avec succès."})
+
 @app.route('/profile')
 @login_required
 def profile():
