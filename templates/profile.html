@@ -257,8 +257,26 @@
                         </div>
                         <!-- Conteneur pour les données des capteurs -->
                         <div class="plant-sensors">
-                            <div class="sensor-hum">Humidité : <span>{{ plant.current_humidity or 'N/A' }}</span></div>
-                            <div class="sensor-lum">Luminosité : <span>{{ plant.current_light or 'N/A' }}</span></div>
+                            <div class="sensor-hum">
+                                Humidité : 
+                                <span>
+                                    {% if plant.current_humidity %}
+                                        {{ plant.current_humidity }}%
+                                    {% else %}
+                                        Pas encore de données
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="sensor-lum">
+                                Luminosité : 
+                                <span>
+                                    {% if plant.current_light %}
+                                        {{ plant.current_light }}%
+                                    {% else %}
+                                        Pas encore de données
+                                    {% endif %}
+                                </span>
+                            </div>
                         </div>
                         <!-- Champ pour l'adresse MAC -->
                         <div class="mac-address">

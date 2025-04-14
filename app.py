@@ -350,6 +350,15 @@ def on_connect(client, userdata, flags, rc):
             topic = f"ESP/{mac_address}/#"
             client.subscribe(topic)
             print(f"✅ Abonné au topic : {topic}")
+def parse_topic(topic):
+    # Exemple pour un topic de type "ESP/5c:01:3b:72:ae:80/LUM"
+    parts = topic.split("/")
+    if len(parts) >= 3:
+        mac = parts[1]
+        sensor = parts[2]
+        return mac, sensor
+    else:
+        return None, None
 
 def on_message(client, userdata, msg):
     print(f"📩 Message brut reçu : Topic = {msg.topic}, Payload = {msg.payload.decode()}")
