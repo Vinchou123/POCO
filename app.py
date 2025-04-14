@@ -9,6 +9,7 @@ import os
 from flask_socketio import SocketIO
 import paho.mqtt.client as mqtt
 from flask_migrate import Migrate
+from datetime import datetime
 
 
 
@@ -46,6 +47,15 @@ class Plant(db.Model):
     # Nouvelles colonnes pour stocker les données des capteurs
     current_humidity = db.Column(db.Float, nullable=True)  # Humidité actuelle
     current_light = db.Column(db.Float, nullable=True)  # Luminosité actuelle
+
+class PlantData(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    plant_id = db.Column(db.Integer, db.ForeignKey('plant.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    humidity = db.Column(db.Float, nullable=True)
+    light = db.Column(db.Float, nullable=True)
+
+    plant = db.relationship('Plant', backref=db.backref('data', lazy=True))
 
 # Table de liaison entre utilisateurs et plantes
 user_plants = db.Table('user_plants',
@@ -195,6 +205,39 @@ def delete_account():
     flash('Compte supprimé avec succès', 'success')
     return redirect(url_for('index'))
 
+@app.route('/profile/plant/<int:plant_id>/history')
+@login_required
+def plant_history(plant_id):
+    with app.app_context():
+        plant = Plant.query.get_or_404(plant_id)
+        data = PlantData.query.filter_by(plant_id=plant_id).order_by(PlantData.timestamp).all()
+
+        # Préparer les données pour le diagramme
+        timestamps = [d.timestamp.strftime('%Y-%m-%d %H:%M:%S') for d in data]
+        humidity = [d.humidity for d in data if d.humidity is not None]
+        light = [d.light for d in data if d.light is not None]
+
+        return render_template('plant_history.html', plant=plant, timestamps=timestamps, humidity=humidity, light=light)
+
+@app.route('/api/plants/<int:plant_id>/history', methods=['GET'])
+@login_required
+def get_plant_history(plant_id):
+    with app.app_context():
+        plant = Plant.query.get_or_404(plant_id)
+        data = PlantData.query.filter_by(plant_id=plant_id).order_by(PlantData.timestamp).all()
+
+        # Préparer les données pour le graphique
+        timestamps = [d.timestamp.strftime('%Y-%m-%d %H:%M:%S') for d in data]
+        humidity = [d.humidity for d in data if d.humidity is not None]
+        light = [d.light for d in data if d.light is not None]
+
+        return jsonify({
+            'plant_name': plant.name,
+            'timestamps': timestamps,
+            'humidity': humidity,
+            'light': light
+        })
+
 def load_plants_from_json():
     json_path = os.path.join('data', 'plants.json')
     with open(json_path, 'r', encoding='utf-8') as f:
@@ -285,28 +328,37 @@ def on_message(client, userdata, msg):
         print("⚠️ Topic non valide ou non pris en charge")
         return
 
-    value = float(msg.payload.decode())  # Convertir la valeur en float
+    value = float(msg.payload.decode())
 
     print(f"[MQTT] {mac} | {sensor} = {value}")
 
     with app.app_context():
-        # Rechercher la plante correspondant à l'adresse MAC
         plant = Plant.query.filter_by(mac_address=mac).first()
         if plant:
-            # Mettre à jour les données du capteur dans les nouvelles colonnes
+            # ✅ 1. Mise à jour des colonnes actuelles
             if sensor == 'HUM':
                 plant.current_humidity = value
             elif sensor == 'LUM':
                 plant.current_light = value
+
+            # ✅ 2. Insertion dans la table PlantData (historique)
+            plant_data = PlantData(
+                plant_id=plant.id,
+                humidity=value if sensor == 'HUM' else None,
+                light=value if sensor == 'LUM' else None
+            )
+            db.session.add(plant_data)
             db.session.commit()
 
-            print(f"✅ Données mises à jour pour la plante : {plant.name}")
-            # Émettre les données via Socket.IO
+            print(f"✅ Données mises à jour et enregistrées pour la plante : {plant.name}")
+
+            # ✅ 3. Émission en temps réel via Socket.IO
             socketio.emit('mqtt_data', {
                 'mac': mac,
                 'sensor': sensor,
                 'value': value
             }, to='/')
+
 
 def on_disconnect(client, userdata, rc):
     global is_connected

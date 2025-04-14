@@ -117,6 +117,97 @@
         background: linear-gradient(135deg, #c82333, #dc3545);
         transform: translateY(-2px);
     }
+    .mac-address {
+        margin-top: 10px;
+    }
+    .mac-input {
+        width: 100%;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+    .btn-secondary {
+        background: linear-gradient(135deg, #6c757d, #5a6268);
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 25px;
+        font-weight: 500;
+        color: #fff;
+        text-align: center;
+        display: inline-block;
+        margin-top: 10px;
+    }
+    .btn-secondary:hover {
+        background: linear-gradient(135deg, #5a6268, #6c757d);
+        transform: translateY(-2px);
+    }
+    .flash-messages {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1rem 0;
+    }
+    .flash-messages li {
+        padding: 0.75rem 1.25rem;
+        margin-bottom: 0.5rem;
+        border: 1px solid transparent;
+        border-radius: 0.25rem;
+    }
+    .flash-messages .success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+    .flash-messages .error {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+    .flash-messages .info {
+        color: #0c5460;
+        background-color: #d1ecf1;
+        border-color: #bee5eb;
+    }
+    .flash-messages .warning {
+        color: #856404;
+        background-color: #fff3cd;
+        border-color: #ffeeba;
+    }
+    .modal {
+        display: none; /* Masquer par défaut */
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-content {
+        background-color: #fff;
+        margin: 10% auto;
+        padding: 20px;
+        border-radius: 10px;
+        width: 80%;
+        max-width: 600px;
+        position: relative;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+    }
+
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
 {% endblock %}
 
 {% block content %}
@@ -175,6 +266,7 @@
                             <input type="text" id="mac_address_{{ plant.id }}" class="mac-input" value="{{ plant.mac_address or '' }}" 
                                    data-plant-id="{{ plant.id }}" placeholder="Entrez l'adresse MAC">
                         </div>
+                        <a href="#" class="btn btn-secondary view-history" data-plant-id="{{ plant.id }}" data-plant-name="{{ plant.name }}">Voir l'historique</a>
                         <button class="remove-plant" data-plant-id="{{ plant.id }}" title="Supprimer la plante">
                             🗑️
                         </button>
@@ -203,10 +295,21 @@
     </div>
 
 </div>
+
+<!-- Modale pour afficher l'historique -->
+<div id="historyModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2>Historique de <span id="plantName"></span></h2>
+        <canvas id="historyChart" width="400" height="200"></canvas>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     const socket = io();
   
@@ -278,6 +381,92 @@
                 })
                 .catch(error => console.error('Erreur:', error));
             });
+        });
+
+        const modal = document.getElementById('historyModal');
+        const closeModal = document.querySelector('.close');
+        const plantNameElement = document.getElementById('plantName');
+        const historyChartElement = document.getElementById('historyChart');
+        let chartInstance = null;
+
+        // Fonction pour ouvrir la modale
+        document.querySelectorAll('.view-history').forEach(button => {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                const plantId = this.getAttribute('data-plant-id');
+                const plantName = this.getAttribute('data-plant-name');
+
+                // Mettre à jour le nom de la plante dans la modale
+                plantNameElement.textContent = plantName;
+
+                // Charger les données de l'historique via une requête AJAX
+                fetch(`/api/plants/${plantId}/history`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Détruire l'ancien graphique s'il existe
+                        if (chartInstance) {
+                            chartInstance.destroy();
+                        }
+
+                        // Afficher les données dans le graphique
+                        const ctx = historyChartElement.getContext('2d');
+                        chartInstance = new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: data.timestamps,
+                                datasets: [
+                                    {
+                                        label: 'Humidité',
+                                        data: data.humidity,
+                                        borderColor: 'rgba(75, 192, 192, 1)',
+                                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                        fill: true
+                                    },
+                                    {
+                                        label: 'Luminosité',
+                                        data: data.light,
+                                        borderColor: 'rgba(255, 206, 86, 1)',
+                                        backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                                        fill: true
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                scales: {
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Temps'
+                                        }
+                                    },
+                                    y: {
+                                        title: {
+                                            display: true,
+                                            text: 'Valeur'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+
+                        // Afficher la modale
+                        modal.style.display = 'block';
+                    })
+                    .catch(error => console.error('Erreur:', error));
+            });
+        });
+
+        // Fonction pour fermer la modale
+        closeModal.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+
+        // Fermer la modale si l'utilisateur clique en dehors de celle-ci
+        window.addEventListener('click', (event) => {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
         });
     });
 </script>

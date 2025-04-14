@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Historique de {{ plant.name }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Historique de {{ plant.name }}</h1>
+    <canvas id="plantChart" width="400" height="200"></canvas>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const ctx = document.getElementById('plantChart').getContext('2d');
+    const plantChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ timestamps|tojson }},
+            datasets: [
+                {
+                    label: 'Humidité',
+                    data: {{ humidity|tojson }},
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    fill: true
+                },
+                {
+                    label: 'Luminosité',
+                    data: {{ light|tojson }},
+                    borderColor: 'rgba(255, 206, 86, 1)',
+                    backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Temps'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Valeur'
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
