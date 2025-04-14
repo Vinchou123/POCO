@@ -11,6 +11,14 @@
     .profile-container {
         max-width: 800px;
         margin: 0 auto;
+        background: none; /* Pas de transparence ici */
+    }
+    .profile-section {
+        background: rgba(255, 255, 255, 0.8); /* Transparence appliquée uniquement ici */
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     }
     .profile-header {
         text-align: center;
@@ -20,13 +28,6 @@
         font-size: 3rem;
         color: #2e7d32;
         margin-bottom: 1rem;
-    }
-    .profile-section {
-        background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255,255,255,0.9));
-        border-radius: 20px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
     }
     .user-plants {
         background: rgba(255, 255, 255, 0.1);
@@ -173,7 +174,7 @@
         border-color: #ffeeba;
     }
     .modal {
-        display: none; /* Masquer par défaut */
+        display: none;
         position: fixed;
         z-index: 1000;
         left: 0;
@@ -208,6 +209,17 @@
         text-decoration: none;
         cursor: pointer;
     }
+    .plant-details {
+        display: none;
+    }
+    .section-title {
+        text-align: center;
+        font-weight: bold;
+    }
+    #addCardButton {
+        display: block;
+        margin: 10px auto; /* Centre horizontalement et ajoute une marge supérieure */
+    }
 {% endblock %}
 
 {% block content %}
@@ -227,35 +239,31 @@
         {% endif %}
     {% endwith %}
 
+    <!-- Section Mes Plantes -->
     <div class="profile-section">
-        <h2><i class="fas fa-key me-2"></i>Changer le mot de passe</h2>
-        <form method="POST" action="{{ url_for('update_password') }}" class="mt-4">
-            <div class="mb-3">
-                <label for="current_password" class="form-label">Mot de passe actuel</label>
-                <input type="password" class="form-control" id="current_password" name="current_password" required>
-            </div>
-            <div class="mb-3">
-                <label for="new_password" class="form-label">Nouveau mot de passe</label>
-                <input type="password" class="form-control" id="new_password" name="new_password" required>
-            </div>
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save me-2"></i>Mettre à jour le mot de passe
-            </button>
-        </form>
-    </div>
-
-    <div class="profile-section">
-        <h2><i class="fas fa-leaf me-2"></i>Mes Plantes</h2>
+        <h2 class="section-title"><i class="fas fa-leaf me-2"></i>Mes Plantes</h2>
+        <button id="addCardButton" class="btn btn-primary" style="margin-top: 10px;">Ajouter une carte</button>
+        <p id="addCardMessage" style="text-align: center; margin-top: 10px; color: #555;"></p>
         <div class="user-plants">
             {% if current_user.plants %}
                 <div class="plants-grid">
                     {% for plant in current_user.plants %}
                     <div class="plant-card" data-mac="{{ plant.mac_address }}">
                         <div class="plant-info">
-                            <img src="{{ plant.image_url }}" alt="{{ plant.name }}" class="plant-image" onerror="this.src='/static/images/default-plant.jpg'">
+                            <div class="plant-image-container">
+                                <img src="{{ plant.image_url }}" alt="{{ plant.name }}" class="plant-image" onerror="this.src='/static/images/default-plant.jpg'">
+                                <div class="plant-details">
+                                    <p><strong>Description :</strong> {{ plant.summary }}</p>
+                                    <p><strong>Température :</strong> {{ plant.temperature }}</p>
+                                    <p><strong>Humidité :</strong> {{ plant.humidity }}</p>
+                                    <p><strong>Arrosage :</strong> {{ plant.watering }}</p>
+                                    <p><strong>Débit :</strong> {{ plant.flow_rate }}</p>
+                                    <p><strong>Lumière :</strong> {{ plant.light }}</p>
+                                    <p><strong>Durée de lumière :</strong> {{ plant.light_duration }}</p>
+                                </div>
+                            </div>
                             <div class="plant-name">{{ plant.name }}</div>
                         </div>
-                        <!-- Conteneur pour les données des capteurs -->
                         <div class="plant-sensors">
                             <div class="sensor-hum">
                                 Humidité : 
@@ -263,7 +271,7 @@
                                     {% if plant.current_humidity %}
                                         {{ plant.current_humidity }}%
                                     {% else %}
-                                        Pas encore de données
+                                        ...
                                     {% endif %}
                                 </span>
                             </div>
@@ -273,17 +281,17 @@
                                     {% if plant.current_light %}
                                         {{ plant.current_light }}%
                                     {% else %}
-                                        Pas encore de données
+                                        ...
                                     {% endif %}
                                 </span>
                             </div>
                         </div>
-                        <!-- Champ pour l'adresse MAC -->
                         <div class="mac-address">
                             <label for="mac_address_{{ plant.id }}">Adresse MAC :</label>
                             <input type="text" id="mac_address_{{ plant.id }}" class="mac-input" value="{{ plant.mac_address or '' }}" 
                                    data-plant-id="{{ plant.id }}" placeholder="Entrez l'adresse MAC">
                         </div>
+                        <button class="btn btn-secondary show-details" data-plant-id="{{ plant.id }}">Détails</button>
                         <a href="#" class="btn btn-secondary view-history" data-plant-id="{{ plant.id }}" data-plant-name="{{ plant.name }}">Voir l'historique</a>
                         <button class="remove-plant" data-plant-id="{{ plant.id }}" title="Supprimer la plante">
                             🗑️
@@ -300,14 +308,32 @@
                 </div>
             {% endif %}
         </div>
-        <button id="addCardButton" class="btn btn-primary">Ajouter une carte</button>
         <div id="detectedCards" style="margin-top: 20px;">
             <!-- Les cartes détectées seront affichées ici -->
         </div>
     </div>
 
+    <!-- Section Changer le mot de passe -->
     <div class="profile-section">
-        <h2><i class="fas fa-trash-alt me-2"></i>Supprimer le compte</h2>
+        <h2 class="section-title"><i class="fas fa-key me-2"></i>Changer le mot de passe</h2>
+        <form method="POST" action="{{ url_for('update_password') }}" class="mt-4">
+            <div class="mb-3">
+                <label for="current_password" class="form-label">Mot de passe actuel</label>
+                <input type="password" class="form-control" id="current_password" name="current_password" required>
+            </div>
+            <div class="mb-3">
+                <label for="new_password" class="form-label">Nouveau mot de passe</label>
+                <input type="password" class="form-control" id="new_password" name="new_password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i>Mettre à jour le mot de passe
+            </button>
+        </form>
+    </div>
+
+    <!-- Section Supprimer le compte -->
+    <div class="profile-section">
+        <h2 class="section-title"><i class="fas fa-trash-alt me-2"></i>Supprimer le compte</h2>
         <p class="text-muted">Cette action est irréversible. Toutes vos données seront supprimées.</p>
         <form method="POST" action="{{ url_for('delete_account') }}" class="mt-4">
             <button type="submit" class="btn btn-danger" onclick="return confirm('Êtes-vous sûr de vouloir supprimer votre compte ?')">
@@ -315,7 +341,6 @@
             </button>
         </form>
     </div>
-
 </div>
 
 <!-- Modale pour afficher l'historique -->
@@ -327,12 +352,28 @@
     </div>
 </div>
 
+<!-- Modale pour afficher les détails de la plante -->
+<div id="plantDetailModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h3 id="modalPlantName">Nom de la plante</h3>
+        <p><strong>Description :</strong> <span id="modalDescription"></span></p>
+        <p><strong>Température :</strong> <span id="modalTemperature"></span></p>
+        <p><strong>Humidité :</strong> <span id="modalHumidity"></span></p>
+        <p><strong>Arrosage :</strong> <span id="modalWatering"></span></p>
+        <p><strong>Débit :</strong> <span id="modalFlowRate"></span></p>
+        <p><strong>Lumière :</strong> <span id="modalLight"></span></p>
+        <p><strong>Durée de lumière :</strong> <span id="modalLightDuration"></span></p>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialisation Socket.IO
     const socket = io();
   
     socket.on('connect', () => {
@@ -343,10 +384,8 @@
         console.log("Données reçues via Socket.IO :", data);
         const { mac, sensor, value } = data;
    
-        // Trouver la carte de la plante correspondante
         const plantCard = document.querySelector(`.plant-card[data-mac="${mac}"]`);
-           if (plantCard) {
-            // Mettre à jour les données du capteur
+        if (plantCard) {
             const sensorElement = plantCard.querySelector(`.sensor-${sensor.toLowerCase()} span`);
             if (sensorElement) {
                 sensorElement.textContent = value;
@@ -354,225 +393,237 @@
         }
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
-        document.querySelectorAll('.remove-plant').forEach(button => {
-            button.addEventListener('click', function(event) {
-                event.preventDefault();
-                const plantId = this.getAttribute('data-plant-id');
-                
-                // Suppression directe sans confirmation
-                fetch(`/api/plants/${plantId}/remove`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
+    // Gestion de la suppression des plantes
+    document.querySelectorAll('.remove-plant').forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+            const plantId = this.getAttribute('data-plant-id');
+            
+            fetch(`/api/plants/${plantId}/remove`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    this.closest('.plant-card').remove();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error('Erreur:', error));
+        });
+    });
+
+    // Gestion des adresses MAC
+    document.querySelectorAll('.mac-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const plantId = this.getAttribute('data-plant-id');
+            const macAddress = this.value;
+
+            fetch(`/api/plants/${plantId}/update_mac`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ mac_address: macAddress })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('Adresse MAC mise à jour avec succès !');
+                } else {
+                    alert('Erreur : ' + data.message);
+                }
+            })
+            .catch(error => console.error('Erreur:', error));
+        });
+    });
+
+    // Gestion de l'historique
+    const historyModal = document.getElementById('historyModal');
+    const historyCloseBtn = historyModal.querySelector('.close');
+    const plantNameElement = document.getElementById('plantName');
+    const historyChartElement = document.getElementById('historyChart');
+    let chartInstance = null;
+
+    document.querySelectorAll('.view-history').forEach(button => {
+        button.addEventListener('click', function(event) {
+            event.preventDefault();
+            const plantId = this.getAttribute('data-plant-id');
+            const plantName = this.getAttribute('data-plant-name');
+
+            plantNameElement.textContent = plantName;
+
+            fetch(`/api/plants/${plantId}/history`)
                 .then(response => response.json())
                 .then(data => {
-                    if (data.status === 'success') {
-                        this.closest('.plant-card').remove();
-                    } else {
-                        alert(data.message);
+                    if (chartInstance) {
+                        chartInstance.destroy();
                     }
-                })
-                .catch(error => console.error('Erreur:', error));
-            });
-        });
 
-        // Sélectionner tous les champs d'entrée pour les adresses MAC
-        document.querySelectorAll('.mac-input').forEach(input => {
-            input.addEventListener('change', function () {
-                const plantId = this.getAttribute('data-plant-id');
-                const macAddress = this.value;
-
-                // Envoyer une requête POST pour mettre à jour l'adresse MAC
-                fetch(`/api/plants/${plantId}/update_mac`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ mac_address: macAddress })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert('Adresse MAC mise à jour avec succès !');
-                    } else {
-                        alert('Erreur : ' + data.message);
-                    }
-                })
-                .catch(error => console.error('Erreur:', error));
-            });
-        });
-
-        const modal = document.getElementById('historyModal');
-        const closeModal = document.querySelector('.close');
-        const plantNameElement = document.getElementById('plantName');
-        const historyChartElement = document.getElementById('historyChart');
-        let chartInstance = null;
-
-        // Fonction pour ouvrir la modale
-        document.querySelectorAll('.view-history').forEach(button => {
-            button.addEventListener('click', function (event) {
-                event.preventDefault();
-                const plantId = this.getAttribute('data-plant-id');
-                const plantName = this.getAttribute('data-plant-name');
-
-                // Mettre à jour le nom de la plante dans la modale
-                plantNameElement.textContent = plantName;
-
-                // Charger les données de l'historique via une requête AJAX
-                fetch(`/api/plants/${plantId}/history`)
-                    .then(response => response.json())
-                    .then(data => {
-                        // Détruire l'ancien graphique s'il existe
-                        if (chartInstance) {
-                            chartInstance.destroy();
-                        }
-
-                        // Afficher les données dans le graphique
-                        const ctx = historyChartElement.getContext('2d');
-                        chartInstance = new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: data.timestamps,
-                                datasets: [
-                                    {
-                                        label: 'Humidité',
-                                        data: data.humidity,
-                                        borderColor: 'rgba(75, 192, 192, 1)',
-                                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                                        fill: true
-                                    },
-                                    {
-                                        label: 'Luminosité',
-                                        data: data.light,
-                                        borderColor: 'rgba(255, 206, 86, 1)',
-                                        backgroundColor: 'rgba(255, 206, 86, 0.2)',
-                                        fill: true
+                    const ctx = historyChartElement.getContext('2d');
+                    chartInstance = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.timestamps,
+                            datasets: [
+                                {
+                                    label: 'Humidité',
+                                    data: data.humidity,
+                                    borderColor: 'rgba(75, 192, 192, 1)',
+                                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                    fill: true
+                                },
+                                {
+                                    label: 'Luminosité',
+                                    data: data.light,
+                                    borderColor: 'rgba(255, 206, 86, 1)',
+                                    backgroundColor: 'rgba(255, 206, 86, 0.2)',
+                                    fill: true
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: 'Temps'
                                     }
-                                ]
-                            },
-                            options: {
-                                responsive: true,
-                                scales: {
-                                    x: {
-                                        title: {
-                                            display: true,
-                                            text: 'Temps'
-                                        }
-                                    },
-                                    y: {
-                                        title: {
-                                            display: true,
-                                            text: 'Valeur'
-                                        }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: 'Valeur'
                                     }
                                 }
                             }
+                        }
+                    });
+
+                    historyModal.style.display = 'block';
+                })
+                .catch(error => console.error('Erreur:', error));
+        });
+    });
+
+    // Gestion des détails de la plante
+    const detailModal = document.getElementById('plantDetailModal');
+    const detailCloseBtn = detailModal.querySelector('.close');
+    
+    document.querySelectorAll('.show-details').forEach(button => {
+        button.addEventListener('click', function() {
+            const plantCard = this.closest('.plant-card');
+            const details = plantCard.querySelector('.plant-details');
+            
+            if (details) {
+                document.getElementById('modalPlantName').textContent = plantCard.querySelector('.plant-name').textContent;
+                document.getElementById('modalDescription').textContent = details.querySelector('p:nth-child(1)').textContent.replace('Description : ', '');
+                document.getElementById('modalTemperature').textContent = details.querySelector('p:nth-child(2)').textContent.replace('Température : ', '');
+                document.getElementById('modalHumidity').textContent = details.querySelector('p:nth-child(3)').textContent.replace('Humidité : ', '');
+                document.getElementById('modalWatering').textContent = details.querySelector('p:nth-child(4)').textContent.replace('Arrosage : ', '');
+                document.getElementById('modalFlowRate').textContent = details.querySelector('p:nth-child(5)').textContent.replace('Débit : ', '');
+                document.getElementById('modalLight').textContent = details.querySelector('p:nth-child(6)').textContent.replace('Lumière : ', '');
+                document.getElementById('modalLightDuration').textContent = details.querySelector('p:nth-child(7)').textContent.replace('Durée de lumière : ', '');
+                
+                detailModal.style.display = 'block';
+            }
+        });
+    });
+
+    // Fermeture des modales
+    historyCloseBtn.onclick = () => historyModal.style.display = 'none';
+    detailCloseBtn.onclick = () => detailModal.style.display = 'none';
+    
+    window.onclick = (event) => {
+        if (event.target == historyModal) historyModal.style.display = 'none';
+        if (event.target == detailModal) detailModal.style.display = 'none';
+    };
+
+    // Gestion des cartes RFID
+    const addCardButton = document.getElementById('addCardButton');
+    const detectedCardsDiv = document.getElementById('detectedCards');
+    let isListening = false;
+    let pollingInterval = null;
+
+    addCardButton.addEventListener('click', () => {
+        fetch('/start_listening', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                const messageElement = document.getElementById('addCardMessage');
+                if (data.status === 'listening') {
+                    isListening = true;
+                    addCardButton.textContent = 'Annuler la recherche de carte';
+                    messageElement.textContent = 'Écoute activée... Recherche de nouvelles cartes.';
+                    startPolling();
+                } else if (data.status === 'stopped') {
+                    isListening = false;
+                    addCardButton.textContent = 'Ajouter une carte';
+                    messageElement.textContent = 'Écoute annulée.';
+                    stopPolling();
+                }
+            })
+            .catch(error => console.error('Erreur:', error));
+    });
+
+    function startPolling() {
+        pollingInterval = setInterval(() => {
+            fetch('/get_detected_cards')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.detected_cards.length > 0) {
+                        detectedCardsDiv.innerHTML = '';
+                        data.detected_cards.forEach(mac => {
+                            const cardDiv = document.createElement('div');
+                            cardDiv.innerHTML = `
+                                <p>Carte détectée : ${mac}</p>
+                                <button class="btn btn-secondary associateCardButton" data-mac="${mac}">Associer à une plante</button>
+                            `;
+                            detectedCardsDiv.appendChild(cardDiv);
                         });
 
-                        // Afficher la modale
-                        modal.style.display = 'block';
-                    })
-                    .catch(error => console.error('Erreur:', error));
-            });
-        });
-
-        // Fonction pour fermer la modale
-        closeModal.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-
-        // Fermer la modale si l'utilisateur clique en dehors de celle-ci
-        window.addEventListener('click', (event) => {
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-
-        const addCardButton = document.getElementById('addCardButton');
-        const detectedCardsDiv = document.getElementById('detectedCards');
-        let isListening = false; // État local pour suivre l'écoute
-        let pollingInterval = null;
-
-        addCardButton.addEventListener('click', () => {
-            // Activer ou désactiver l'écoute
-            fetch('/start_listening', { method: 'POST' })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'listening') {
-                        isListening = true;
-                        addCardButton.textContent = 'Annuler la recherche de carte';
-                        detectedCardsDiv.innerHTML = '<p>Écoute activée... Recherche de nouvelles cartes.</p>';
-                        startPolling();
-                    } else if (data.status === 'stopped') {
-                        isListening = false;
-                        addCardButton.textContent = 'Ajouter une carte';
-                        detectedCardsDiv.innerHTML = '<p>Écoute annulée.</p>';
-                        stopPolling();
+                        document.querySelectorAll('.associateCardButton').forEach(button => {
+                            button.addEventListener('click', function() {
+                                const mac = this.getAttribute('data-mac');
+                                associateCard(mac);
+                            });
+                        });
                     }
                 })
                 .catch(error => console.error('Erreur:', error));
-        });
+        }, 2000);
+    }
 
-        function startPolling() {
-            // Vérifier les cartes détectées toutes les 2 secondes
-            pollingInterval = setInterval(() => {
-                fetch('/get_detected_cards')
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.detected_cards.length > 0) {
-                            detectedCardsDiv.innerHTML = '';
-                            data.detected_cards.forEach(mac => {
-                                const cardDiv = document.createElement('div');
-                                cardDiv.innerHTML = `
-                                    <p>Carte détectée : ${mac}</p>
-                                    <button class="btn btn-secondary associateCardButton" data-mac="${mac}">Associer à une plante</button>
-                                `;
-                                detectedCardsDiv.appendChild(cardDiv);
-                            });
-
-                            // Ajouter des gestionnaires pour les boutons "Associer"
-                            document.querySelectorAll('.associateCardButton').forEach(button => {
-                                button.addEventListener('click', function () {
-                                    const mac = this.getAttribute('data-mac');
-                                    associateCard(mac);
-                                });
-                            });
-                        }
-                    })
-                    .catch(error => console.error('Erreur:', error));
-            }, 2000); // Vérifier toutes les 2 secondes
+    function stopPolling() {
+        if (pollingInterval) {
+            clearInterval(pollingInterval);
+            pollingInterval = null;
         }
+    }
 
-        function stopPolling() {
-            // Arrêter le polling
-            if (pollingInterval) {
-                clearInterval(pollingInterval);
-                pollingInterval = null;
-            }
+    function associateCard(mac) {
+        const plantName = prompt(`Associer la carte ${mac} à quelle plante ?`);
+        if (plantName) {
+            fetch('/api/plants/associate_card', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mac_address: mac, plant_name: plantName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert(`Carte ${mac} associée à la plante ${plantName} avec succès !`);
+                } else {
+                    alert(`Erreur : ${data.message}`);
+                }
+            })
+            .catch(error => console.error('Erreur:', error));
         }
-
-        function associateCard(mac) {
-            const plantName = prompt(`Associer la carte ${mac} à quelle plante ?`);
-            if (plantName) {
-                fetch('/api/plants/associate_card', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mac_address: mac, plant_name: plantName })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert(`Carte ${mac} associée à la plante ${plantName} avec succès !`);
-                    } else {
-                        alert(`Erreur : ${data.message}`);
-                    }
-                })
-                .catch(error => console.error('Erreur:', error));
-            }
-        }
-    });
+    }
+});
 </script>
 {% endblock %}
