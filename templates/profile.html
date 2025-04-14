@@ -282,6 +282,10 @@
                 </div>
             {% endif %}
         </div>
+        <button id="addCardButton" class="btn btn-primary">Ajouter une carte</button>
+        <div id="detectedCards" style="margin-top: 20px;">
+            <!-- Les cartes détectées seront affichées ici -->
+        </div>
     </div>
 
     <div class="profile-section">
@@ -468,30 +472,89 @@
                 modal.style.display = 'none';
             }
         });
+
+        const addCardButton = document.getElementById('addCardButton');
+        const detectedCardsDiv = document.getElementById('detectedCards');
+        let isListening = false; // État local pour suivre l'écoute
+        let pollingInterval = null;
+
+        addCardButton.addEventListener('click', () => {
+            // Activer ou désactiver l'écoute
+            fetch('/start_listening', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'listening') {
+                        isListening = true;
+                        addCardButton.textContent = 'Annuler la recherche de carte';
+                        detectedCardsDiv.innerHTML = '<p>Écoute activée... Recherche de nouvelles cartes.</p>';
+                        startPolling();
+                    } else if (data.status === 'stopped') {
+                        isListening = false;
+                        addCardButton.textContent = 'Ajouter une carte';
+                        detectedCardsDiv.innerHTML = '<p>Écoute annulée.</p>';
+                        stopPolling();
+                    }
+                })
+                .catch(error => console.error('Erreur:', error));
+        });
+
+        function startPolling() {
+            // Vérifier les cartes détectées toutes les 2 secondes
+            pollingInterval = setInterval(() => {
+                fetch('/get_detected_cards')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.detected_cards.length > 0) {
+                            detectedCardsDiv.innerHTML = '';
+                            data.detected_cards.forEach(mac => {
+                                const cardDiv = document.createElement('div');
+                                cardDiv.innerHTML = `
+                                    <p>Carte détectée : ${mac}</p>
+                                    <button class="btn btn-secondary associateCardButton" data-mac="${mac}">Associer à une plante</button>
+                                `;
+                                detectedCardsDiv.appendChild(cardDiv);
+                            });
+
+                            // Ajouter des gestionnaires pour les boutons "Associer"
+                            document.querySelectorAll('.associateCardButton').forEach(button => {
+                                button.addEventListener('click', function () {
+                                    const mac = this.getAttribute('data-mac');
+                                    associateCard(mac);
+                                });
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Erreur:', error));
+            }, 2000); // Vérifier toutes les 2 secondes
+        }
+
+        function stopPolling() {
+            // Arrêter le polling
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        function associateCard(mac) {
+            const plantName = prompt(`Associer la carte ${mac} à quelle plante ?`);
+            if (plantName) {
+                fetch('/api/plants/associate_card', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mac_address: mac, plant_name: plantName })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(`Carte ${mac} associée à la plante ${plantName} avec succès !`);
+                    } else {
+                        alert(`Erreur : ${data.message}`);
+                    }
+                })
+                .catch(error => console.error('Erreur:', error));
+            }
+        }
     });
 </script>
 {% endblock %}
-
-@app.route('/profile/update_mac', methods=['POST'])
-@login_required
-def update_mac():
-    plant_name = request.form.get('plant_name')
-    mac_address = request.form.get('mac_address')
-
-    if not plant_name or not mac_address:
-        flash("Le nom de la plante et l'adresse MAC sont obligatoires.", "error")
-        return redirect('/profile')
-
-    with app.app_context():
-        # Rechercher la plante par son nom
-        plant = Plant.query.filter_by(name=plant_name).first()
-        if not plant:
-            flash("Plante introuvable.", "error")
-            return redirect('/profile')
-
-        # Mettre à jour l'adresse MAC
-        plant.mac_address = mac_address
-        db.session.commit()
-
-        flash(f"L'adresse MAC de la plante '{plant_name}' a été mise à jour avec succès !", "success")
-        return redirect('/profile')

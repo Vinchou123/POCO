@@ -57,6 +57,11 @@ class PlantData(db.Model):
 
     plant = db.relationship('Plant', backref=db.backref('data', lazy=True))
 
+class ESPRegistry(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    mac_address = db.Column(db.String(100), unique=True, nullable=False)
+    added_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 # Table de liaison entre utilisateurs et plantes
 user_plants = db.Table('user_plants',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
@@ -175,6 +180,25 @@ def update_mac_api(plant_id):
 
         return jsonify({'status': 'success', 'message': "Adresse MAC mise à jour avec succès."})
 
+@app.route('/api/plants/associate_card', methods=['POST'])
+@login_required
+def associate_card():
+    data = request.get_json()
+    mac_address = data.get('mac_address')
+    plant_name = data.get('plant_name')
+
+    if not mac_address or not plant_name:
+        return jsonify({'status': 'error', 'message': 'Adresse MAC et nom de la plante requis.'}), 400
+
+    with app.app_context():
+        plant = Plant.query.filter_by(name=plant_name).first()
+        if not plant:
+            return jsonify({'status': 'error', 'message': 'Plante introuvable.'}), 404
+
+        plant.mac_address = mac_address
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': f'Carte {mac_address} associée à la plante {plant_name}.'})
+
 @app.route('/profile')
 @login_required
 def profile():
@@ -238,6 +262,34 @@ def get_plant_history(plant_id):
             'light': light
         })
 
+@app.route('/esp_registry', methods=['GET'])
+@login_required
+def esp_registry_view():
+    return jsonify(esp_registry)
+
+@app.route('/start_listening', methods=['POST'])
+@login_required
+def start_listening():
+    global is_listening, esp_registry
+
+    if is_listening:
+        # Si l'écoute est déjà active, l'annuler
+        is_listening = False
+        esp_registry.clear()  # Réinitialiser la liste des cartes détectées
+        print("🔇 Écoute annulée.")
+        return jsonify({'status': 'stopped'})
+    else:
+        # Activer l'écoute
+        is_listening = True
+        esp_registry.clear()  # Réinitialiser la liste des cartes détectées
+        print("🔊 Écoute activée pour détecter de nouvelles cartes.")
+        return jsonify({'status': 'listening'})
+
+@app.route('/get_detected_cards', methods=['GET'])
+@login_required
+def get_detected_cards():
+    return jsonify({'detected_cards': esp_registry})
+
 def load_plants_from_json():
     json_path = os.path.join('data', 'plants.json')
     with open(json_path, 'r', encoding='utf-8') as f:
@@ -281,47 +333,60 @@ MQTT_TOPICS = [
 # Variable pour suivre l'état de la connexion
 is_connected = False
 
+# Liste pour enregistrer les adresses MAC (ou utilisez une base de données)
+esp_registry = []  # Vous pouvez remplacer par une table dans votre base de données
+
+is_listening = False  # Variable pour suivre l'état de l'écoute
+
 def on_connect(client, userdata, flags, rc):
     print("🔌 Connecté au broker MQTT :", rc)
+    client.subscribe("pot/appairage")  # S'abonner au topic pour l'appairage
     with app.app_context():
         plants = Plant.query.all()
         for plant in plants:
             mac_address = plant.mac_address
             if mac_address == "UNKNOWN":
-                # Supprimez ou commentez cette ligne pour ne pas afficher les messages
-                # print(f"⚠️ Adresse MAC inconnue pour la plante : {plant.name}, abonnement ignoré.")
                 continue
             topic = f"ESP/{mac_address}/#"
             client.subscribe(topic)
             print(f"✅ Abonné au topic : {topic}")
-                   
-def handle_exit(sig, frame):
-    print("\nDéconnexion du broker MQTT...")
-#    mqtt_client.publish("ESP/5c:01:3b:72:ae:80/HUM", "Déconnecté", qos=1)
-    mqtt_client.disconnect()
-    mqtt_client.loop_stop()
-    print("Déconnecté proprement.")
-    sys.exit(0)
-
-# Capture des signaux d'interruption
-signal.signal(signal.SIGINT, handle_exit)
-signal.signal(signal.SIGTERM, handle_exit)
-
-def parse_topic(topic):
-    """
-    Analyse un topic MQTT et retourne l'adresse MAC et le type de capteur.
-    Exemple de topic : "ESP/5c:01:3b:72:ae:80/HUM"
-    Retourne : ("5c:01:3b:72:ae:80", "HUM")
-    """
-    parts = topic.split('/')
-    if len(parts) == 3 and parts[0] == 'ESP':
-        mac_address = parts[1]
-        sensor = parts[2]
-        return mac_address, sensor
-    return None, None
 
 def on_message(client, userdata, msg):
     print(f"📩 Message brut reçu : Topic = {msg.topic}, Payload = {msg.payload.decode()}")
+
+    if msg.topic == "pot/appairage":
+        mac = msg.payload.decode()
+        print("📩 MAC reçue :", mac)
+
+        # Ajouter la MAC à l'enregistrement si elle n'existe pas déjà
+        if mac not in esp_registry:
+            esp_registry.append(mac)
+            print("✅ Nouvelle carte ajoutée :", mac)
+
+            # Exemple : Ajouter la MAC dans la base de données Flask
+            with app.app_context():
+                # Vérifier si la plante existe déjà
+                existing_plant = Plant.query.filter_by(mac_address=mac).first()
+                if not existing_plant:
+                    # Ajouter une nouvelle plante avec cette adresse MAC
+                    new_plant = Plant(
+                        name="Nouvelle Plante",
+                        mac_address=mac,
+                        temperature="N/A",
+                        humidity="N/A",
+                        watering="N/A",
+                        flow_rate="N/A",
+                        light="N/A",
+                        light_duration="N/A",
+                        summary="Plante ajoutée automatiquement via MQTT",
+                        image_url="/static/images/default-plant.jpg"
+                    )
+                    db.session.add(new_plant)
+                    db.session.commit()
+                    print(f"✅ Plante ajoutée à la base de données avec l'adresse MAC : {mac}")
+                else:
+                    print(f"⚠️ La plante avec l'adresse MAC {mac} existe déjà.")
+        return
 
     mac, sensor = parse_topic(msg.topic)
     if not mac or not sensor:
@@ -364,7 +429,6 @@ def on_disconnect(client, userdata, rc):
     global is_connected
     if is_connected:  # Vérifie si le client était connecté
         print("Déconnecté du broker MQTT")
-        # ESP/#
         client.publish("ESP/5c:01:3b:72:ae:80/STATE", "Ping", qos=1)
         is_connected = False  # Met à jour l'état de la connexion
 
