@@ -23,7 +23,6 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
-# Initialiser Flask-Migrate
 migrate = Migrate(app, db)
 
 class User(UserMixin, db.Model):
@@ -37,16 +36,15 @@ class Plant(db.Model):
     mac_address = db.Column(db.String(100), nullable=False)
     name = db.Column(db.String(100), nullable=False)
     temperature = db.Column(db.String(50))
-    humidity = db.Column(db.String(50))  # Colonne existante
+    humidity = db.Column(db.String(50))
     watering = db.Column(db.String(50))
     flow_rate = db.Column(db.String(50))
-    light = db.Column(db.String(50))  # Colonne existante
+    light = db.Column(db.String(50))
     light_duration = db.Column(db.String(50))
     summary = db.Column(db.Text, nullable=True)
     image_url = db.Column(db.String(200))
-    # Nouvelles colonnes pour stocker les données des capteurs
-    current_humidity = db.Column(db.Float, nullable=True)  # Humidité actuelle
-    current_light = db.Column(db.Float, nullable=True)  # Luminosité actuelle
+    current_humidity = db.Column(db.Float, nullable=True)
+    current_light = db.Column(db.Float, nullable=True)
 
 class PlantData(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -62,7 +60,6 @@ class ESPRegistry(db.Model):
     mac_address = db.Column(db.String(100), unique=True, nullable=False)
     added_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-# Table de liaison entre utilisateurs et plantes
 user_plants = db.Table('user_plants',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
     db.Column('plant_id', db.Integer, db.ForeignKey('plant.id'), primary_key=True)
@@ -169,12 +166,10 @@ def update_mac_api(plant_id):
         return jsonify({'status': 'error', 'message': "L'adresse MAC est obligatoire."}), 400
 
     with app.app_context():
-        # Rechercher la plante par son ID
         plant = Plant.query.get(plant_id)
         if not plant:
             return jsonify({'status': 'error', 'message': 'Plante introuvable.'}), 404
 
-        # Mettre à jour l'adresse MAC
         plant.mac_address = mac_address
         db.session.commit()
 
@@ -210,7 +205,7 @@ def update_password():
     current_password = request.form.get('current_password')
     new_password = request.form.get('new_password')
     
-    if not current_user.check_password(current_password):
+    if not check_password_hash(current_user.password, current_password):
         flash('Mot de passe actuel incorrect', 'error')
         return redirect(url_for('profile'))
     
@@ -236,7 +231,6 @@ def plant_history(plant_id):
         plant = Plant.query.get_or_404(plant_id)
         data = PlantData.query.filter_by(plant_id=plant_id).order_by(PlantData.timestamp).all()
 
-        # Préparer les données pour le diagramme
         timestamps = [d.timestamp.strftime('%Y-%m-%d %H:%M:%S') for d in data]
         humidity = [d.humidity for d in data if d.humidity is not None]
         light = [d.light for d in data if d.light is not None]
@@ -250,7 +244,6 @@ def get_plant_history(plant_id):
         plant = Plant.query.get_or_404(plant_id)
         data = PlantData.query.filter_by(plant_id=plant_id).order_by(PlantData.timestamp).all()
 
-        # Préparer les données pour le graphique
         timestamps = [d.timestamp.strftime('%Y-%m-%d %H:%M:%S') for d in data]
         humidity = [d.humidity for d in data if d.humidity is not None]
         light = [d.light for d in data if d.light is not None]
@@ -273,15 +266,13 @@ def start_listening():
     global is_listening, esp_registry
 
     if is_listening:
-        # Si l'écoute est déjà active, l'annuler
         is_listening = False
-        esp_registry.clear()  # Réinitialiser la liste des cartes détectées
+        esp_registry.clear()
         print("🔇 Écoute annulée.")
         return jsonify({'status': 'stopped'})
     else:
-        # Activer l'écoute
         is_listening = True
-        esp_registry.clear()  # Réinitialiser la liste des cartes détectées
+        esp_registry.clear()
         print("🔊 Écoute activée pour détecter de nouvelles cartes.")
         return jsonify({'status': 'listening'})
 
@@ -300,14 +291,12 @@ def init_db():
     with app.app_context():
         db.create_all()
         
-        # Vérifier si la base de données est vide
         if Plant.query.count() == 0:
-            # Charger les plantes depuis le fichier JSON
             plants_data = load_plants_from_json()
             
             for plant_data in plants_data:
                 plant = Plant(
-                    mac_address=plant_data.get('mac_address', 'UNKNOWN'),  # Ajout de mac_address
+                    mac_address=plant_data.get('mac_address', 'UNKNOWN'),
                     name=plant_data['name'],
                     temperature=plant_data['temperature'],
                     humidity=plant_data['humidity'],
@@ -322,7 +311,6 @@ def init_db():
             
             db.session.commit()
             
-# Configuration MQTT
 MQTT_BROKER = 'broker.emqx.io' 
 MQTT_PORT = 1883
 MQTT_TOPICS = [
@@ -330,17 +318,15 @@ MQTT_TOPICS = [
     "ESP/5c:01:3b:72:ae:80/LUM"
 ]
 
-# Variable pour suivre l'état de la connexion
 is_connected = False
 
-# Liste pour enregistrer les adresses MAC (ou utilisez une base de données)
-esp_registry = []  # Vous pouvez remplacer par une table dans votre base de données
+esp_registry = []
 
-is_listening = False  # Variable pour suivre l'état de l'écoute
+is_listening = False
 
 def on_connect(client, userdata, flags, rc):
     print("🔌 Connecté au broker MQTT :", rc)
-    client.subscribe("pot/appairage")  # S'abonner au topic pour l'appairage
+    client.subscribe("pot/appairage")
     with app.app_context():
         plants = Plant.query.all()
         for plant in plants:
@@ -351,7 +337,6 @@ def on_connect(client, userdata, flags, rc):
             client.subscribe(topic)
             print(f"✅ Abonné au topic : {topic}")
 def parse_topic(topic):
-    # Exemple pour un topic de type "ESP/5c:01:3b:72:ae:80/LUM"
     parts = topic.split("/")
     if len(parts) >= 3:
         mac = parts[1]
@@ -367,17 +352,13 @@ def on_message(client, userdata, msg):
         mac = msg.payload.decode()
         print("📩 MAC reçue :", mac)
 
-        # Ajouter la MAC à l'enregistrement si elle n'existe pas déjà
         if mac not in esp_registry:
             esp_registry.append(mac)
             print("✅ Nouvelle carte ajoutée :", mac)
 
-            # Exemple : Ajouter la MAC dans la base de données Flask
             with app.app_context():
-                # Vérifier si la plante existe déjà
                 existing_plant = Plant.query.filter_by(mac_address=mac).first()
                 if not existing_plant:
-                    # Ajouter une nouvelle plante avec cette adresse MAC
                     new_plant = Plant(
                         name="Nouvelle Plante",
                         mac_address=mac,
@@ -409,13 +390,11 @@ def on_message(client, userdata, msg):
     with app.app_context():
         plant = Plant.query.filter_by(mac_address=mac).first()
         if plant:
-            # ✅ 1. Mise à jour des colonnes actuelles
             if sensor == 'HUM':
                 plant.current_humidity = value
             elif sensor == 'LUM':
                 plant.current_light = value
 
-            # ✅ 2. Insertion dans la table PlantData (historique)
             plant_data = PlantData(
                 plant_id=plant.id,
                 humidity=value if sensor == 'HUM' else None,
@@ -426,7 +405,6 @@ def on_message(client, userdata, msg):
 
             print(f"✅ Données mises à jour et enregistrées pour la plante : {plant.name}")
 
-            # ✅ 3. Émission en temps réel via Socket.IO
             socketio.emit('mqtt_data', {
                 'mac': mac,
                 'sensor': sensor,
@@ -436,12 +414,11 @@ def on_message(client, userdata, msg):
 
 def on_disconnect(client, userdata, rc):
     global is_connected
-    if is_connected:  # Vérifie si le client était connecté
+    if is_connected:
         print("Déconnecté du broker MQTT")
         client.publish("ESP/5c:01:3b:72:ae:80/STATE", "Ping", qos=1)
-        is_connected = False  # Met à jour l'état de la connexion
+        is_connected = False
 
-# Configurer le client MQTT
 mqtt_client = mqtt.Client(client_id="mqttx_876ac026")
 mqtt_client.on_connect = on_connect
 mqtt_client.on_message = on_message

@@ -4,11 +4,60 @@
 
 {% block additional_styles %}
     .search-container {
-        background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(255,255,255,0.8));
-        padding: 2rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: linear-gradient(135deg, #f9fbe7, #f1f8e9); /* Couleurs pastel */
         border-radius: 20px;
-        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
+
+    .search-box {
+        display: flex;
+        align-items: center;
+        background: white;
+        border: 2px solid #81c784; /* Vert pastel */
+        border-radius: 25px;
+        padding: 0.5rem 1rem;
+        width: 100%;
+        max-width: 600px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .search-box input {
+        flex: 1;
+        border: none;
+        outline: none;
+        font-size: 1rem;
+        padding: 0.5rem;
+        border-radius: 25px;
+        color: #2e7d32; /* Vert foncé */
+    }
+
+    .search-box input::placeholder {
+        color: #a5d6a7; /* Vert clair */
+        font-style: italic;
+    }
+
+    .search-box i {
+        color: #81c784; /* Vert pastel */
+        font-size: 1.5rem;
+        margin-left: 0.5rem;
+    }
+
+    .search-box .fa-seedling {
+        color: #66bb6a; /* Vert floral */
+        font-size: 1.5rem;
+        margin-right: 0.5rem;
+    }
+
+    .search-box input:focus {
+        border: none;
+        outline: none;
+    }
+
     .plants-grid {
         display: grid;
         grid-template-columns: repeat(4, 1fr);
@@ -160,6 +209,7 @@
             <div class="col-12">
                 <div class="search-container">
                     <div class="search-box">
+                        <i class="fas fa-seedling"></i> <!-- Icône de fleur -->
                         <input type="text" id="searchInput" placeholder="Rechercher une plante...">
                         <i class="fas fa-search"></i>
                     </div>
@@ -282,4 +332,4 @@
         // Recherche initiale
         searchPlants();
     </script>
-{% endblock %} 
+{% endblock %}

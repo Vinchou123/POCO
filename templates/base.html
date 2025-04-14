@@ -17,6 +17,7 @@
             min-height: 100vh;
         }
         .navbar {
+            align-items: center;
             background-color: rgba(255, 255, 255, 0.95) !important;
             box-shadow: 0 2px 15px rgba(0,0,0,0.1);
             backdrop-filter: blur(10px);
@@ -25,6 +26,21 @@
             font-weight: 600;
             color: #2e7d32 !important;
             font-size: 1.5rem;
+        }
+        .navbar-brand img {
+            max-height: 100%; /* Ajustez la hauteur selon vos besoins */
+            height :180px;
+            width: auto;
+            object-fit: contain;
+        }
+        .navbar-logo {
+            margin-right: auto; /* Place le logo à gauche */
+        }
+
+        .navbar-logo img.logo {
+            height: 80px; /* Ajustez la hauteur selon vos besoins */
+            width: auto; /* Conserve les proportions de l'image */
+            object-fit: contain;
         }
         .nav-link {
             color: #2e7d32 !important;
@@ -88,11 +104,11 @@
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-light mb-4">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">
-                <i class="fas fa-leaf me-2"></i>Gestion des Plantes
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <div class="container d-flex align-items-center">
+            <div class="navbar-logo">
+                <img src="{{ url_for('static', filename='logoPOCO.png') }}" alt="Logo" class="logo">
+            </div>
+            <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -149,4 +165,4 @@
     <script src="https://kit.fontawesome.com/a076d05399.js"></script>
     {% block scripts %}{% endblock %}
 </body>
-</html> 
+</html>
