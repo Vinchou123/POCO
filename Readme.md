@@ -12,7 +12,7 @@
 
 ## 🛠️ Technologies utilisées
 
-- **Microcontrôleur** : ESP32 ou Arduino avec connectivité Wi-Fi
+- **Microcontrôleur** : ESP32 avec connectivité Wi-Fi intégrée
 - **Capteurs** :
   - Capteur d'humidité du sol 💧
   - Capteur de lumière ☀️
