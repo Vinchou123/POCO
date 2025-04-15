@@ -56,7 +56,7 @@ Chaque pot de plante connecté (ESP32, ESP8266…) a sa propre adresse MAC.
 Cela permet de différencier les différents pots dans le réseau, utile si tu en as plusieurs.
 
 
-<br><br><br><br><br>
+<br><br><br><br>
 
 
 ### 📦 Installation des dépendances Python
