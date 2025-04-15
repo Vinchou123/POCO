@@ -261,7 +261,7 @@
             "light_duration": "10-12 heures par jour",
             "summary": "L'Anthurium est une plante tropicale aux fleurs cireuses rouges. Il apporte une touche d'exotisme et de couleur à l'intérieur.",
             "model_3d": "",
-            "image_url": ""
+            "image_url": "/static/images/Anthurium.jpg"
         },
         {
             "name": "Bégonia rex",
@@ -273,7 +273,7 @@
             "light_duration": "10-12 heures par jour",
             "summary": "Le Bégonia rex est apprécié pour son feuillage coloré et texturé. Il est parfait pour ajouter de la couleur sans fleurs.",
             "model_3d": "",
-            "image_url": ""
+            "image_url": "/static/images/Bégonia rex.jpg"
         },
         {
             "name": "Buis",
@@ -285,7 +285,7 @@
             "light_duration": "10-12 heures par jour",
             "summary": "Le Buis est un arbuste à feuilles persistantes, parfait pour les haies et la topiaire. Il est très résistant et facile à tailler.",
             "model_3d": "",
-            "image_url": ""
+            "image_url": "/static/images/Buis.jpg"
         },
         {
             "name": "Camomille",
@@ -297,7 +297,7 @@
             "light_duration": "12-14 heures par jour",
             "summary": "La Camomille est une plante herbacée aux fleurs blanches et jaunes. Elle est utilisée pour ses propriétés apaisantes et son parfum agréable.",
             "model_3d": "",
-            "image_url": ""
+            "image_url": "/static/images/Camomille.jpg"
         },
         {
             "name": "Chèvrefeuille",
@@ -309,7 +309,7 @@
             "light_duration": "10-12 heures par jour",
             "summary": "Le Chèvrefeuille est une plante grimpante parfumée. Ses fleurs tubulaires attirent les papillons et les colibris.",
             "model_3d": "",
-            "image_url": ""
+            "image_url": "/static/images/Chèvrefeuille.jpg"
         },
         {
             "name": "Coléus",
@@ -321,7 +321,7 @@
             "light_duration": "10-12 heures par jour",
             "summary": "Le Coléus est une plante ornementale aux feuilles colorées. Il est parfait pour ajouter de la couleur aux massifs et aux pots.",
             "model_3d": "",
-            "image_url": ""
+            "image_url": "/static/images/Coléus.jpg"
         },
         {
             "name": "Corbeille d'or",
