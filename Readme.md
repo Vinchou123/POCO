@@ -1,6 +1,6 @@
 
 
-# 🌱 POCO - Plot de Plante Connecté
+# 🌱 POCO - Pot de Plante Connecté
 
 **POCO** est un projet IoT (Objet connecté) permettant de surveiller et de gérer à distance l'état d'un pot de plante. Le système utilise le protocole **MQTT** pour la communication entre les capteurs, le microcontrôleur et une interface d'affichage sur un site web.
 
@@ -12,18 +12,18 @@
 
 ## 🛠️ Technologies utilisées
 
-- **Microcontrôleur** : ESP32 avec connectivité Wi-Fi intégrée qui permet de controller notre systrelme compose de :
+- **Microcontrôleur** : ESP32 avec connectivité Wi-Fi intégrée, permettant de contrôler notre système composé de :
 - **Capteurs** :
   - Capteur d'humidité du sol 💧
   - Capteur de lumière ☀️
 
 - **Actionneurs**
-    - 2 LED
-    - Pompe aliménté en 5 V
+    - 2 LED 💡
+    - Pompe aliménté en 5 V 🔌
 
 - **Protocole de communication** : [MQTT](https://mqtt.org/)
 - **Broker MQTT** : Mosquitto
-- **Plateforme** : Site web (en http local : http://127.0.0.1:5000 )
+- **Plateforme** : Site web (en http local : http://127.0.0.1:5000 ) 💻
 
 ## 📡 Fonctionnement
 
