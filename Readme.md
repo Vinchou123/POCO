@@ -12,10 +12,15 @@
 
 ## 🛠️ Technologies utilisées
 
-- **Microcontrôleur** : ESP32 avec connectivité Wi-Fi intégrée
+- **Microcontrôleur** : ESP32 avec connectivité Wi-Fi intégrée qui permet de controller notre systrelme compose de :
 - **Capteurs** :
   - Capteur d'humidité du sol 💧
   - Capteur de lumière ☀️
+
+- **Actionneurs**
+    - 2 LED
+    - Pompe aliménté en 5 V
+
 - **Protocole de communication** : [MQTT](https://mqtt.org/)
 - **Broker MQTT** : Mosquitto
 - **Plateforme** : Site web (en http local : http://127.0.0.1:5000 )
